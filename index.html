@@ -23,7 +23,7 @@
       <a href="#confianca">Segurança &amp; LGPD</a>
       <a href="#depoimento">Quem já usa</a>
     </div>
-    <a href="#comecar" class="btn">Criar meu evento</a>
+    <button type="button" class="btn" onclick="openEventForm()">Criar meu evento</button>
   </nav>
 </header>
 
@@ -34,7 +34,7 @@
     <h1>Chega de planilha<br>e grupo de <em>WhatsApp</em><br>lotado de "vou sim!"</h1>
     <p class="lead">O Tá Marcado organiza a confirmação de presença e a lista de presentes do seu evento num link só — feito para funcionar até para a avó de 78 anos, no celular dela.</p>
     <div class="cta-row">
-      <a href="#comecar" class="btn">Criar meu evento grátis</a>
+      <button type="button" class="btn" onclick="openEventForm()">Criar meu evento grátis</button>
       <a href="#como-funciona" class="btn ghost">Ver como funciona</a>
     </div>
     <div class="trust-row">
@@ -219,15 +219,69 @@
   <div class="final-cta">
     <h2>Seu evento organizado<br>em um link só</h2>
     <p>Suba sua lista, dispare o convite e acompanhe as confirmações em tempo real — sem planilha, sem app para o convidado instalar.</p>
-    <a href="#" class="btn" style="background:var(--gold-soft); color:var(--green-deep);">Criar meu evento grátis</a>
+    <button type="button" class="btn" onclick="openEventForm()" style="background:var(--gold-soft); color:var(--green-deep);">Criar meu evento grátis</button>
   </div>
 </section>
+
+<!-- ===================== MODAL: CRIAR EVENTO =====================
+     Formulário simples (nome, e-mail, tipo de evento).
+     Usa o Netlify Forms: o atributo data-netlify="true" faz o Netlify
+     detectar esse formulário no deploy e te avisar por e-mail a cada
+     envio, sem precisar de nenhum servidor próprio.
+==================================================================== -->
+<div class="modal-overlay" id="eventModal">
+  <div class="modal-card">
+    <button class="modal-close" type="button" onclick="closeEventForm()" aria-label="Fechar">&times;</button>
+
+    <div class="modal-body" id="modalFormView">
+      <span class="mono">vamos começar</span>
+      <h3>Conte um pouco sobre seu evento</h3>
+      <p class="modal-sub">Preencha e a gente te chama por e-mail pra configurar tudo certinho.</p>
+
+      <form name="criar-evento" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="eventForm">
+        <input type="hidden" name="form-name" value="criar-evento">
+
+        <!-- campo-armadilha contra spam: fica escondido para pessoas, bots costumam preencher -->
+        <p class="hp-field">
+          <label>Não preencha este campo: <input name="bot-field"></label>
+        </p>
+
+        <label class="field-label" for="f-nome">Seu nome</label>
+        <input class="field-input" type="text" id="f-nome" name="nome" required placeholder="Como podemos te chamar?">
+
+        <label class="field-label" for="f-email">Seu e-mail</label>
+        <input class="field-input" type="email" id="f-email" name="email" required placeholder="voce@email.com">
+
+        <label class="field-label" for="f-tipo">Tipo de evento</label>
+        <select class="field-input" id="f-tipo" name="tipo_evento" required>
+          <option value="" disabled selected>Escolha uma opção</option>
+          <option value="casamento">Casamento</option>
+          <option value="debutante">Debutante / 15 anos</option>
+          <option value="aniversario">Aniversário</option>
+          <option value="bodas">Bodas</option>
+          <option value="outro">Outro</option>
+        </select>
+
+        <button type="submit" class="btn" style="width:100%; justify-content:center; margin-top:18px;">Enviar</button>
+      </form>
+    </div>
+
+    <div class="modal-body" id="modalThanksView" style="display:none;">
+      <span class="mono">recebido!</span>
+      <h3>Seu evento está a caminho 🎉</h3>
+      <p class="modal-sub">Recebemos seus dados e vamos te chamar por e-mail em breve pra configurar tudo.</p>
+      <p class="modal-sub" style="margin-top:-4px;"><a href="painel.html" style="color:var(--green); font-weight:600;">Ver um exemplo do painel do organizador →</a></p>
+      <button class="btn ghost" type="button" onclick="closeEventForm()" style="width:100%; justify-content:center;">Fechar</button>
+    </div>
+  </div>
+</div>
 
 <!-- ===================== RODAPÉ ===================== -->
 <footer>
   <div class="wrap">
     <div>© Tá Marcado — plataforma de gestão de eventos</div>
     <div>Casamentos · Debutantes · Aniversários · Bodas</div>
+    <a href="painel.html" style="color:var(--ink-soft); text-decoration:underline;">Ver painel do organizador (protótipo)</a>
   </div>
 </footer>
 
