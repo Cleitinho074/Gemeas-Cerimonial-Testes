@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tá Marcado — confirmação de presença e lista de presentes sem planilha</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Libre+Franklin:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===================== CABEÇALHO ===================== -->
+<header class="site">
+  <nav class="wrap">
+    <div class="logo"><span class="dot"></span>Tá Marcado</div>
+    <div class="links">
+      <a href="#como-funciona">Como funciona</a>
+      <a href="#presentes">Lista de presentes</a>
+      <a href="#confianca">Segurança &amp; LGPD</a>
+      <a href="#depoimento">Quem já usa</a>
+    </div>
+    <button type="button" class="btn" onclick="openEventForm()">Criar meu evento</button>
+  </nav>
+</header>
+
+<!-- ===================== HERO ===================== -->
+<section class="wrap hero">
+  <div>
+    <div class="eyebrow mono">Casamentos · Debutantes · Aniversários · Bodas</div>
+    <h1>Chega de planilha<br>e grupo de <em>WhatsApp</em><br>lotado de "vou sim!"</h1>
+    <p class="lead">O Tá Marcado organiza a confirmação de presença e a lista de presentes do seu evento num link só — feito para funcionar até para a avó de 78 anos, no celular dela.</p>
+    <div class="cta-row">
+      <button type="button" class="btn" onclick="openEventForm()">Criar meu evento grátis</button>
+      <a href="#como-funciona" class="btn ghost">Ver como funciona</a>
+    </div>
+    <div class="trust-row">
+      <div class="item">Confirmação em até 3 telas</div>
+      <div class="item">Sem o convidado criar conta</div>
+      <div class="item">Backup diário da lista</div>
+    </div>
+  </div>
+
+  <div class="envelope-stage">
+    <div>
+      <div class="envelope" id="envelope" onclick="toggleEnvelope()">
+        <div class="env-back">
+          <div class="card">
+            <div class="k1">você está convidado(a)</div>
+            <div class="k2">Ana &amp; Marcos</div>
+            <div class="k3">12 de dezembro · Sítio das Palmeiras</div>
+            <div class="rsvp-mini">
+              <span class="yes">Vou! 🎉</span>
+              <span>Não vou</span>
+            </div>
+          </div>
+        </div>
+        <div class="env-flap"></div>
+        <div class="env-seal">TM</div>
+      </div>
+      <div class="env-hint">toque no convite para abrir</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== A DOR DE HOJE ===================== -->
+<section class="wrap section">
+  <div class="split">
+    <div>
+      <div class="mono">a dor de hoje</div>
+      <h2 style="margin-top:14px;">Sua lista de convidados<br>vive espalhada</h2>
+      <p class="body-lead">Uma parte no caderno, outra numa planilha desatualizada, e o resto perdido no meio de 200 mensagens de um grupo de WhatsApp que ninguém mais lê direito.</p>
+    </div>
+    <div class="chaos-card">
+      <div class="chaos-line"><span class="tag">planilha</span> "quem confirmou mesmo, a Fernanda ou a prima dela?"</div>
+      <div class="chaos-line"><span class="tag">whatsapp</span> "gente, esqueci de avisar que vou levar 2 crianças 🙈"</div>
+      <div class="chaos-line"><span class="tag">caderno</span> presente riscado a lápis, ninguém sabe se já foi comprado</div>
+      <div class="chaos-line"><span class="tag">cerimonial</span> pedindo a lista atualizada pela quinta vez essa semana</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== COMO FUNCIONA ===================== -->
+<section class="wrap section" id="como-funciona">
+  <div class="mono">como funciona</div>
+  <h2 style="margin-top:14px;">Um link. Três etapas.<br>Nenhum atrito para o convidado.</h2>
+  <p class="body-lead">O convidado abre pelo celular, se identifica pelo nome — mesmo com erro de digitação — e confirma. Sem senha, sem app, sem e-mail para validar.</p>
+
+  <div class="steps">
+    <div class="step">
+      <span class="num">01</span>
+      <h3>Envie o convite</h3>
+      <p>Suba a lista por planilha ou cadastre à mão, agrupe por "família da noiva", "trabalho", "faculdade" e dispare o link pelo WhatsApp, do jeito que você já usa.</p>
+    </div>
+    <div class="step">
+      <span class="num">02</span>
+      <h3>O convidado confirma</h3>
+      <p>Nome ou telefone, quantidade de acompanhantes dentro do limite do convite, restrição alimentar e recado — tudo numa tela só, sem duplicar confirmação.</p>
+    </div>
+    <div class="step">
+      <span class="num">03</span>
+      <h3>Você acompanha ao vivo</h3>
+      <p>Painel com contadores de confirmados, recusados e pendentes, filtro de "quem não respondeu" e exportação em PDF ou Excel para o buffet e o cerimonialista.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== MOCKUP CELULAR + PAINEL ===================== -->
+<section class="section" style="background:var(--paper-raised); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+  <div class="wrap split">
+    <div class="phone-mock">
+      <div class="phone-screen">
+        <div class="pill">confirmar presença</div>
+        <h4>Você foi convidado(a)!</h4>
+        <div class="sub">Casamento de Ana &amp; Marcos · 12 dez</div>
+        <div class="qty-row"><span>Quantas pessoas vêm?</span><strong>2 de 2</strong></div>
+        <div class="qty-row"><span>Alguma criança?</span><strong>Não</strong></div>
+        <div class="qty-row"><span>Restrição alimentar</span><strong>Vegetariano</strong></div>
+        <div class="phone-btn">Confirmar presença</div>
+        <div class="phone-btn outline">Editar depois</div>
+      </div>
+    </div>
+    <div>
+      <div class="mono">painel do organizador</div>
+      <h2 style="margin-top:14px;">A pergunta que você mais faz,<br>respondida na hora</h2>
+      <p class="body-lead" style="margin-bottom:36px;">"Quantas pessoas confirmaram e quem ainda falta responder?" — sem abrir planilha nenhuma.</p>
+      <div class="dash">
+        <div class="stat"><div class="n">184</div><div class="l">confirmados</div></div>
+        <div class="stat"><div class="n">12</div><div class="l">recusados</div></div>
+        <div class="stat"><div class="n">37</div><div class="l">aguardando resposta</div></div>
+        <div class="stat"><div class="n">3</div><div class="l">telas até confirmar</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== LISTA DE PRESENTES ===================== -->
+<section class="wrap section" id="presentes">
+  <div class="mono">depois do "vou sim"</div>
+  <h2 style="margin-top:14px;">A lista de presentes abre<br>na sequência — sem pedir tudo de novo</h2>
+  <p class="body-lead">Quem acabou de confirmar presença já cai direto na vitrine, identificado, sem preencher nome e telefone outra vez.</p>
+
+  <div class="gift-grid">
+    <div class="gift-card">
+      <div class="gift-thumb">jogo de panelas</div>
+      <div class="gift-body">
+        <div class="name">Jogo de panelas antiaderente</div>
+        <div class="meta"><span>R$ 389</span><span class="status livre">livre</span></div>
+      </div>
+    </div>
+    <div class="gift-card">
+      <div class="gift-thumb">lua de mel</div>
+      <div class="gift-body">
+        <div class="name">Cota lua de mel</div>
+        <div class="meta"><span>R$ 150</span><span class="status livre">livre</span></div>
+      </div>
+    </div>
+    <div class="gift-card">
+      <div class="gift-thumb">jogo de cama</div>
+      <div class="gift-body">
+        <div class="name">Jogo de cama casal</div>
+        <div class="meta"><span>R$ 260</span><span class="status reservado">reservado</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CONFIANÇA / REQUISITOS NÃO FUNCIONAIS ===================== -->
+<section class="wrap section" id="confianca">
+  <div class="mono">para quem organiza dormir tranquilo</div>
+  <h2 style="margin-top:14px;">Feito para funcionar mesmo<br>no pico do grupo de WhatsApp</h2>
+  <div class="trust-grid">
+    <div class="trust-item">
+      <span class="mono">mobile-first</span>
+      <h3>Roda liso no celular</h3>
+      <p>Imagens otimizadas para conexão fraca e aparelho mais antigo — porque é dali que 9 em cada 10 convidados acessam.</p>
+    </div>
+    <div class="trust-item">
+      <span class="mono">lgpd</span>
+      <h3>Dados do convidado, respeitados</h3>
+      <p>Aviso de privacidade claro, telefone nunca usado para marketing, e exclusão automática dos dados um tempo depois do evento.</p>
+    </div>
+    <div class="trust-item">
+      <span class="mono">segurança do link</span>
+      <h3>Ninguém lista seus convidados</h3>
+      <p>O link do seu evento não é adivinhável, e a página pública nunca expõe a lista completa de quem foi convidado.</p>
+    </div>
+    <div class="trust-item">
+      <span class="mono">backup diário</span>
+      <h3>Sua lista nunca some</h3>
+      <p>Perder as confirmações a uma semana do evento seria o pior cenário — por isso o backup roda todo dia, sem você precisar pedir.</p>
+    </div>
+    <div class="trust-item">
+      <span class="mono">acessível</span>
+      <h3>Sem letra miúda</h3>
+      <p>Fonte grande, botões grandes, linguagem simples. Se a avó consegue usar sozinha, qualquer convidado consegue.</p>
+    </div>
+    <div class="trust-item">
+      <span class="mono">disponibilidade</span>
+      <h3>Aguenta o pico do disparo</h3>
+      <p>Testado para dezenas de acessos simultâneos nos minutos depois do link cair no grupo da família.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== DEPOIMENTO ===================== -->
+<section class="wrap section" id="depoimento">
+  <div class="testi">
+    <blockquote>"Parei de perguntar 'quem confirmou?' pro grupo da família. Abria o painel e já sabia."</blockquote>
+    <cite>— noiva, casamento de 220 convidados</cite>
+  </div>
+</section>
+
+<!-- ===================== CHAMADA FINAL ===================== -->
+<section class="wrap section" id="comecar">
+  <div class="final-cta">
+    <h2>Seu evento organizado<br>em um link só</h2>
+    <p>Suba sua lista, dispare o convite e acompanhe as confirmações em tempo real — sem planilha, sem app para o convidado instalar.</p>
+    <button type="button" class="btn" onclick="openEventForm()" style="background:var(--gold-soft); color:var(--green-deep);">Criar meu evento grátis</button>
+  </div>
+</section>
+
+<!-- ===================== MODAL: CRIAR EVENTO =====================
+     Formulário simples (nome, e-mail, tipo de evento).
+     Usa o Netlify Forms: o atributo data-netlify="true" faz o Netlify
+     detectar esse formulário no deploy e te avisar por e-mail a cada
+     envio, sem precisar de nenhum servidor próprio.
+==================================================================== -->
+<div class="modal-overlay" id="eventModal">
+  <div class="modal-card">
+    <button class="modal-close" type="button" onclick="closeEventForm()" aria-label="Fechar">&times;</button>
+
+    <div class="modal-body" id="modalFormView">
+      <span class="mono">vamos começar</span>
+      <h3>Conte um pouco sobre seu evento</h3>
+      <p class="modal-sub">Preencha e a gente te chama por e-mail pra configurar tudo certinho.</p>
+
+      <form name="criar-evento" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="eventForm">
+        <input type="hidden" name="form-name" value="criar-evento">
+
+        <!-- campo-armadilha contra spam: fica escondido para pessoas, bots costumam preencher -->
+        <p class="hp-field">
+          <label>Não preencha este campo: <input name="bot-field"></label>
+        </p>
+
+        <label class="field-label" for="f-nome">Seu nome</label>
+        <input class="field-input" type="text" id="f-nome" name="nome" required placeholder="Como podemos te chamar?">
+
+        <label class="field-label" for="f-email">Seu e-mail</label>
+        <input class="field-input" type="email" id="f-email" name="email" required placeholder="voce@email.com">
+
+        <label class="field-label" for="f-tipo">Tipo de evento</label>
+        <select class="field-input" id="f-tipo" name="tipo_evento" required>
+          <option value="" disabled selected>Escolha uma opção</option>
+          <option value="casamento">Casamento</option>
+          <option value="debutante">Debutante / 15 anos</option>
+          <option value="aniversario">Aniversário</option>
+          <option value="bodas">Bodas</option>
+          <option value="outro">Outro</option>
+        </select>
+
+        <button type="submit" class="btn" style="width:100%; justify-content:center; margin-top:18px;">Enviar</button>
+      </form>
+    </div>
+
+    <div class="modal-body" id="modalThanksView" style="display:none;">
+      <span class="mono">recebido!</span>
+      <h3>Seu evento está a caminho 🎉</h3>
+      <p class="modal-sub">Recebemos seus dados e vamos te chamar por e-mail em breve pra configurar tudo.</p>
+      <p class="modal-sub" style="margin-top:-4px;"><a href="painel.html" style="color:var(--green); font-weight:600;">Ver um exemplo do painel do organizador →</a></p>
+      <button class="btn ghost" type="button" onclick="closeEventForm()" style="width:100%; justify-content:center;">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== RODAPÉ ===================== -->
+<footer>
+  <div class="wrap">
+    <div>© Tá Marcado — plataforma de gestão de eventos</div>
+    <div>Casamentos · Debutantes · Aniversários · Bodas</div>
+    <a href="painel.html" style="color:var(--ink-soft); text-decoration:underline;">Ver painel do organizador (protótipo)</a>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>
