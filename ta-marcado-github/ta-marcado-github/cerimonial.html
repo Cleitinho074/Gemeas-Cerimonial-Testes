@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel da cerimonialista — Tá Marcado</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Libre+Franklin:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/painel.css">
+<link rel="stylesheet" href="css/cerimonial.css">
+</head>
+<body>
+
+<!-- Protótipo: dados fixos no código, sem login real ainda -->
+<div class="proto-banner">🔧 Protótipo com dados de exemplo — ainda sem login/conta real. É pra avaliar o design antes de conectarmos os dados de verdade.</div>
+
+<div class="topbar">
+  <a href="index.html" class="logo" style="text-decoration:none;"><span class="dot"></span>Tá Marcado</a>
+  <div class="who">Painel da cerimonialista · <strong>Patrícia Duarte</strong> · Duarte Cerimonial</div>
+  <div class="avatar">PD</div>
+</div>
+
+<!-- ==================================================================
+     TELA 1 — listagem de todos os eventos que ela atende
+     ================================================================== -->
+<div class="wrap" id="telaLista" style="padding-top:32px; padding-bottom:80px;">
+
+  <div class="page-head">
+    <div>
+      <h1>Meus eventos</h1>
+      <p>Todos os eventos das contas vinculadas a você, do mais próximo para o mais distante.</p>
+    </div>
+  </div>
+
+  <!-- Resumo somado de todos os eventos -->
+  <div class="summary">
+    <div class="item">
+      <div class="n" id="resumoEventos">0</div>
+      <div class="l">eventos ativos</div>
+    </div>
+    <div class="item">
+      <div class="n" id="resumoContas">0</div>
+      <div class="l">contas vinculadas</div>
+    </div>
+    <div class="item">
+      <div class="n" id="resumoConfirmados">0</div>
+      <div class="l">confirmados</div>
+    </div>
+    <div class="item destaque">
+      <div class="n" id="resumoPendentes">0</div>
+      <div class="l">sem resposta</div>
+    </div>
+    <div class="item destaque">
+      <div class="n" id="resumoAprovacao">0</div>
+      <div class="l">aguardando aprovação</div>
+    </div>
+    <div class="next">
+      <span>próximo evento</span>
+      <div id="resumoProximo">—</div>
+    </div>
+  </div>
+
+  <!-- Busca, filtro por tipo e ordenação -->
+  <div class="toolbar">
+    <input type="text" id="buscaEvento" placeholder="Buscar por evento, cliente ou local...">
+    <button class="tipo-chip active" data-tipo="todos">Todos</button>
+    <button class="tipo-chip" data-tipo="casamento">Casamentos</button>
+    <button class="tipo-chip" data-tipo="debutante">15 anos</button>
+    <button class="tipo-chip" data-tipo="aniversario">Aniversários</button>
+    <select id="ordenacao" aria-label="Ordenar eventos">
+      <option value="data">Data mais próxima</option>
+      <option value="pendentes">Mais pendências</option>
+    </select>
+    <button class="chip-btn" id="limparEventos">Limpar filtros</button>
+  </div>
+
+  <div class="event-grid" id="eventGrid"></div>
+  <div class="empty-state" id="eventEmpty" style="display:none;">Nenhum evento encontrado com esse filtro.</div>
+
+  <!-- ===== Card: como o vínculo funciona no banco de dados ===== -->
+  <div class="table-card model-card">
+    <span class="mono">modelo de dados</span>
+    <h3>Como a cerimonialista se liga a várias contas</h3>
+    <p>
+      Hoje o sistema já tem <strong>conta → evento → convidado</strong> (uma conta com vários eventos, a RN06).
+      O que falta é a tabela de relação <strong>cerimonialista_conta</strong>: é ela que permite uma cerimonialista
+      atender várias contas diferentes, e uma mesma conta ter mais de uma cerimonialista (a titular e uma assistente,
+      por exemplo). O vínculo dá permissão de <strong>leitura</strong> — quem edita a lista continua sendo a noiva.
+    </p>
+    <div class="model-code">cerimonialista ──┐
+                 │   cerimonialista_conta  (N:N)
+                 ├──── id
+                 ├──── cerimonialista_id  FK → cerimonialista
+                 ├──── conta_id           FK → conta
+                 ├──── papel              'cerimonialista' | 'assistente'
+                 ├──── vinculado_em       data
+                 └──── status             'ativo' | 'encerrado'
+conta ───────────┘
+  └── evento (1:N)  ← RN06, já existe
+        └── convidado (1:N)</div>
+    <p style="margin-top:16px;">
+      A consulta do painel percorre esse caminho: cerimonialista → contas vinculadas → eventos dessas contas →
+      convidados de cada evento. Neste protótipo o resultado já está pronto em <code>EVENTOS</code>, dentro de
+      <code>js/cerimonial.js</code>.
+    </p>
+  </div>
+
+</div>
+
+<!-- ==================================================================
+     TELA 2 — confirmações de um evento (somente leitura)
+     ================================================================== -->
+<div class="wrap" id="telaDetalhe" style="display:none; padding-top:32px; padding-bottom:80px;">
+
+  <div class="crumb">
+    <a href="#" id="voltarLista">← Meus eventos</a> · <span id="crumbEvento">—</span>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <h1 id="detalheTitulo">—</h1>
+      <p id="detalheSub">—</p>
+    </div>
+    <div class="export-row">
+      <button class="export-btn" disabled title="Disponível na versão com dados reais">Exportar PDF</button>
+      <button class="export-btn" disabled title="Disponível na versão com dados reais">Exportar Excel</button>
+    </div>
+  </div>
+
+  <div class="readonly-note">
+    <span aria-hidden="true">🔒</span>
+    <div>
+      <strong>Somente leitura.</strong>
+      <span id="detalheConta">—</span>. Você acompanha as respostas em tempo real, mas adicionar, editar ou
+      aprovar convidados e disparar convites continua no painel do cliente.
+    </div>
+  </div>
+
+  <!-- Contadores (clicáveis: funcionam como atalho de filtro) -->
+  <div class="stats six">
+    <div class="stat-card" data-filter="todos">
+      <div class="n" id="statTotal">0</div>
+      <div class="l">total de convidados</div>
+    </div>
+    <div class="stat-card confirmado" data-filter="confirmado">
+      <div class="n" id="statConfirmado">0</div>
+      <div class="l">confirmados</div>
+    </div>
+    <div class="stat-card recusado" data-filter="recusado">
+      <div class="n" id="statRecusado">0</div>
+      <div class="l">recusados</div>
+    </div>
+    <div class="stat-card" data-filter="pendente">
+      <div class="n" id="statPendente">0</div>
+      <div class="l">aguardando resposta</div>
+    </div>
+    <div class="stat-card aprovacao" data-filter="aprovacao">
+      <div class="n" id="statAprovacao">0</div>
+      <div class="l">aguardando aprovação</div>
+    </div>
+    <div class="stat-card leitura lugares">
+      <div class="n" id="statLugares">0</div>
+      <div class="l">lugares confirmados</div>
+    </div>
+  </div>
+
+  <!-- Filtros da lista de convidados -->
+  <div class="toolbar">
+    <input type="text" id="buscaConvidado" placeholder="Buscar por nome ou telefone...">
+    <select id="grupoFiltro">
+      <option value="todos">Todos os grupos</option>
+    </select>
+    <button class="chip-btn" id="btnNaoRespondeu">Quem não respondeu</button>
+    <button class="chip-btn" id="btnLimparConvidados">Limpar filtros</button>
+  </div>
+
+  <!-- Tabela de convidados (sem ações de edição) -->
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Convidado</th>
+          <th>Grupo</th>
+          <th>Status</th>
+          <th>Lugares</th>
+          <th>Restrição alimentar</th>
+          <th>Crianças</th>
+          <th>Respondido em</th>
+        </tr>
+      </thead>
+      <tbody id="guestTableBody"></tbody>
+    </table>
+    <div class="empty-state" id="guestEmpty" style="display:none;">Nenhum convidado encontrado com esse filtro.</div>
+  </div>
+
+  <footer class="legend">Lugares confirmados é a soma dos acompanhantes, não a quantidade de convites — por isso o número pode ser diferente da quantidade de linhas na tabela.</footer>
+
+</div>
+
+<script src="js/cerimonial.js"></script>
+</body>
+</html>
