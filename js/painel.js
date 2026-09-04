@@ -1,167 +1,115 @@
-/* ==========================================================================
-   PAINEL.JS
-   Lógica do protótipo do painel do organizador.
-   Os dados em GUESTS são de exemplo — na versão com conta e banco de dados
-   real, essa lista viria da tabela "convidado" em vez de estar fixa aqui.
-   ========================================================================== */
-
 const GUESTS = [
-  { nome: "Fernanda Alves", telefone: "(11) 98888-1122", grupo: "Família da noiva", status: "confirmado", lugares: 2, restricao: "—", criancas: 0, respondido: "12/08/2026" },
-  { nome: "Rodrigo Souza", telefone: "(11) 97777-3344", grupo: "Trabalho", status: "confirmado", lugares: 1, restricao: "Vegetariano", criancas: 0, respondido: "10/08/2026" },
-  { nome: "Camila e Bruno", telefone: "(11) 96666-5566", grupo: "Faculdade", status: "pendente", lugares: 0, restricao: "—", criancas: 0, respondido: "—" },
-  { nome: "Marta Ribeiro", telefone: "(11) 95555-7788", grupo: "Família do noivo", status: "recusado", lugares: 0, restricao: "—", criancas: 0, respondido: "14/08/2026" },
-  { nome: "Juliana Prima", telefone: "(11) 94444-9900", grupo: "Família da noiva", status: "confirmado", lugares: 3, restricao: "Sem lactose", criancas: 1, respondido: "09/08/2026" },
-  { nome: "Diego Martins", telefone: "(11) 93333-1234", grupo: "Trabalho", status: "pendente", lugares: 0, restricao: "—", criancas: 0, respondido: "—" },
-  { nome: "Larissa Gomes (não encontrada)", telefone: "(11) 92222-4321", grupo: "—", status: "aprovacao", lugares: 1, restricao: "—", criancas: 0, respondido: "15/08/2026" },
-  { nome: "Paulo e Renata", telefone: "(11) 91111-8765", grupo: "Faculdade", status: "confirmado", lugares: 2, restricao: "—", criancas: 0, respondido: "08/08/2026" },
-  { nome: "Beatriz Nunes", telefone: "(11) 90000-2468", grupo: "Família do noivo", status: "pendente", lugares: 0, restricao: "—", criancas: 0, respondido: "—" },
-  { nome: "Carlos Eduardo", telefone: "(11) 98765-1357", grupo: "Trabalho", status: "recusado", lugares: 0, restricao: "—", criancas: 0, respondido: "11/08/2026" },
+  { nome:"Fernanda Souza", telefone:"(67) 99911-2200", grupo:"Família da noiva", status:"confirmado", lugares:2, restricao:"Nenhuma", criancas:0, respondido:"02/09/2026" },
+  { nome:"Lucas Almeida", telefone:"(67) 99820-1133", grupo:"Trabalho", status:"pendente", lugares:2, restricao:"—", criancas:0, respondido:"—" },
+  { nome:"Mariana Costa", telefone:"(67) 99100-4500", grupo:"Faculdade", status:"recusado", lugares:1, restricao:"—", criancas:0, respondido:"01/09/2026" },
+  { nome:"João Ribeiro", telefone:"(67) 99221-7711", grupo:"Família do noivo", status:"confirmado", lugares:3, restricao:"Sem lactose", criancas:1, respondido:"03/09/2026" },
+  { nome:"Camila Martins", telefone:"(67) 99771-0808", grupo:"Amigos", status:"aprovacao", lugares:1, restricao:"Vegetariano", criancas:0, respondido:"04/09/2026" },
+  { nome:"Paulo Nunes", telefone:"(67) 99660-5512", grupo:"Amigos", status:"pendente", lugares:2, restricao:"—", criancas:0, respondido:"—" }
 ];
 
-const STATUS_LABEL = {
-  confirmado: "Confirmado",
-  recusado: "Recusado",
-  pendente: "Pendente",
-  aprovacao: "Aguardando aprovação",
+let activeFilter = "todos";
+let selectedGuest = null;
+
+const labels = {
+  confirmado:"Confirmado",
+  recusado:"Recusado",
+  pendente:"Pendente",
+  aprovacao:"Aguardando aprovação"
 };
 
-let currentStatusFilter = "todos";
-let currentInvitePhone = "";
-
-/** Monta o link do convite (aponta pro convite.html publicado junto do site). */
-function buildInviteLink() {
-  return window.location.origin + window.location.pathname.replace("painel.html", "convite.html");
+function renderStats() {
+  const set = (id, value) => { const el=document.getElementById(id); if(el) el.textContent=value; };
+  set("statTotal", GUESTS.reduce((n,g)=>n+g.lugares,0));
+  set("statConfirmado", GUESTS.filter(g=>g.status==="confirmado").reduce((n,g)=>n+g.lugares,0));
+  set("statRecusado", GUESTS.filter(g=>g.status==="recusado").length);
+  set("statPendente", GUESTS.filter(g=>g.status==="pendente").length);
+  set("statAprovacao", GUESTS.filter(g=>g.status==="aprovacao").length);
 }
 
-/** Gera o texto padrão da mensagem de convite/lembrete para um convidado. */
-function buildInviteMessage(guest) {
-  const primeiroNome = guest.nome.split(" ")[0];
-  const link = buildInviteLink();
-  return `Oi ${primeiroNome}! 💌\n\nVocê está convidado(a) para o nosso casamento!\n\n📅 12 de dezembro de 2026\n📍 Sítio das Palmeiras\n\nConfirma sua presença aqui, é rapidinho (menos de 1 minuto):\n${link}\n\nCom carinho,\nAna & Marcos`;
+function filteredGuests() {
+  const q = (document.getElementById("searchInput")?.value || "").toLowerCase().trim();
+  const group = document.getElementById("groupFilter")?.value || "todos";
+  return GUESTS.filter(g => {
+    const statusOk = activeFilter === "todos" || g.status === activeFilter;
+    const groupOk = group === "todos" || g.grupo === group;
+    const qOk = !q || `${g.nome} ${g.telefone}`.toLowerCase().includes(q);
+    return statusOk && groupOk && qOk;
+  });
 }
 
-/** Abre o modal de convite já com a mensagem pronta pra essa pessoa. */
-function openInviteMessage(index) {
-  const guest = GUESTS[index];
-  currentInvitePhone = guest.telefone;
-  document.getElementById("inviteModalGuestName").textContent = guest.nome;
-  document.getElementById("inviteMessageText").value = buildInviteMessage(guest);
-  document.getElementById("inviteModal").classList.add("open");
-  document.body.style.overflow = "hidden";
+function renderTable() {
+  const body = document.getElementById("guestTableBody");
+  if (!body) return;
+  const rows = filteredGuests();
+  body.innerHTML = rows.map((g,i) => `
+    <tr>
+      <td><strong>${g.nome}</strong><br><small>${g.telefone}</small></td>
+      <td>${g.grupo}</td>
+      <td><span class="badge ${g.status}">${labels[g.status]}</span></td>
+      <td>${g.lugares}</td>
+      <td>${g.restricao}</td>
+      <td>${g.criancas}</td>
+      <td>${g.respondido}</td>
+      <td><button class="invite-btn" type="button" data-name="${g.nome}">Convite</button></td>
+    </tr>`).join("");
+  const empty = document.getElementById("emptyState");
+  if (empty) empty.style.display = rows.length ? "none" : "block";
+  body.querySelectorAll(".invite-btn").forEach(btn => btn.addEventListener("click", () => openInviteModal(btn.dataset.name)));
+}
+
+function openInviteModal(name) {
+  selectedGuest = GUESTS.find(g=>g.nome===name);
+  if (!selectedGuest) return;
+  const modal = document.getElementById("inviteModal");
+  const title = document.getElementById("inviteModalGuestName");
+  const text = document.getElementById("inviteMessageText");
+  if (title) title.textContent = selectedGuest.nome;
+  if (text) text.value = `Olá, ${selectedGuest.nome}! 💌\n\nVocê está convidado(a) para o casamento de Ana & Marcos, no dia 12 de dezembro.\n\nConfirme sua presença pelo link:\nhttps://exemplo.com/convite\n\nEsperamos você!`;
+  if (modal) { modal.classList.add("open"); modal.style.display="flex"; }
 }
 
 function closeInviteModal() {
-  document.getElementById("inviteModal").classList.remove("open");
-  document.body.style.overflow = "";
+  const modal = document.getElementById("inviteModal");
+  if (modal) { modal.classList.remove("open"); modal.style.display="none"; }
 }
 
-/** Abre o WhatsApp com o número do convidado e o texto (já editado) preenchido. */
 function sendViaWhatsApp() {
-  const digits = currentInvitePhone.replace(/\D/g, "");
-  const withCountryCode = digits.length <= 11 ? "55" + digits : digits;
-  const text = encodeURIComponent(document.getElementById("inviteMessageText").value);
-  window.open(`https://wa.me/${withCountryCode}?text=${text}`, "_blank");
-}
-
-/** Preenche o filtro de grupo com os grupos que existem nos dados. */
-function populateGroupFilter() {
-  const select = document.getElementById("groupFilter");
-  const groups = [...new Set(GUESTS.map((g) => g.grupo).filter((g) => g !== "—"))];
-  groups.forEach((g) => {
-    const opt = document.createElement("option");
-    opt.value = g;
-    opt.textContent = g;
-    select.appendChild(opt);
-  });
-}
-
-/** Atualiza os números dos cards de estatística no topo. */
-function updateStats() {
-  document.getElementById("statTotal").textContent = GUESTS.length;
-  document.getElementById("statConfirmado").textContent = GUESTS.filter((g) => g.status === "confirmado").length;
-  document.getElementById("statRecusado").textContent = GUESTS.filter((g) => g.status === "recusado").length;
-  document.getElementById("statPendente").textContent = GUESTS.filter((g) => g.status === "pendente").length;
-  document.getElementById("statAprovacao").textContent = GUESTS.filter((g) => g.status === "aprovacao").length;
-}
-
-/** Aplica busca + filtro de grupo + filtro de status e redesenha a tabela. */
-function renderTable() {
-  const search = document.getElementById("searchInput").value.trim().toLowerCase();
-  const group = document.getElementById("groupFilter").value;
-  const tbody = document.getElementById("guestTableBody");
-  const emptyState = document.getElementById("emptyState");
-
-  const filtered = GUESTS
-    .map((g, idx) => ({ ...g, idx }))
-    .filter((g) => {
-      const matchesStatus = currentStatusFilter === "todos" || g.status === currentStatusFilter;
-      const matchesSearch = !search || g.nome.toLowerCase().includes(search) || g.telefone.includes(search);
-      const matchesGroup = group === "todos" || g.grupo === group;
-      return matchesStatus && matchesSearch && matchesGroup;
-    });
-
-  tbody.innerHTML = "";
-
-  if (filtered.length === 0) {
-    emptyState.style.display = "block";
-    return;
-  }
-
-  emptyState.style.display = "none";
-  filtered.forEach((g) => {
-    const tr = document.createElement("tr");
-    const approveBtn = g.status === "aprovacao" ? '<button class="row-action">Aprovar</button>' : "";
-    tr.innerHTML = `
-      <td>
-        <div class="guest-name">${g.nome}</div>
-        <div class="guest-sub">${g.telefone}</div>
-      </td>
-      <td>${g.grupo}</td>
-      <td><span class="badge ${g.status}">${STATUS_LABEL[g.status]}</span></td>
-      <td>${g.lugares || "—"}</td>
-      <td>${g.restricao}</td>
-      <td>${g.criancas > 0 ? g.criancas : "—"}</td>
-      <td>${g.respondido}</td>
-      <td style="display:flex; gap:6px; flex-wrap:wrap;">
-        <button class="row-action" onclick="openInviteMessage(${g.idx})">Convite</button>
-        ${approveBtn}
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-/** Troca o filtro de status ativo (usado pelos cards e pelo botão "quem não respondeu"). */
-function setStatusFilter(status) {
-  currentStatusFilter = status;
-  document.querySelectorAll(".stat-card").forEach((card) => {
-    card.classList.toggle("active", card.dataset.filter === status);
-  });
-  renderTable();
+  if (!selectedGuest) return;
+  const message = document.getElementById("inviteMessageText")?.value || "";
+  const digits = selectedGuest.telefone.replace(/\D/g,"");
+  window.open(`https://wa.me/55${digits}?text=${encodeURIComponent(message)}`, "_blank", "noopener");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  populateGroupFilter();
-  updateStats();
-  setStatusFilter("todos");
-
-  document.getElementById("searchInput").addEventListener("input", renderTable);
-  document.getElementById("groupFilter").addEventListener("change", renderTable);
-
-  document.querySelectorAll(".stat-card").forEach((card) => {
-    card.addEventListener("click", () => setStatusFilter(card.dataset.filter));
+  renderStats();
+  const group = document.getElementById("groupFilter");
+  if (group) {
+    [...new Set(GUESTS.map(g=>g.grupo))].sort().forEach(v => {
+      const o=document.createElement("option"); o.value=v; o.textContent=v; group.appendChild(o);
+    });
+    group.addEventListener("change", renderTable);
+  }
+  document.getElementById("searchInput")?.addEventListener("input", renderTable);
+  document.querySelectorAll(".stat-card").forEach(card => card.addEventListener("click", () => {
+    activeFilter = card.dataset.filter || "todos";
+    document.querySelectorAll(".stat-card").forEach(c=>c.classList.toggle("active",c===card));
+    renderTable();
+  }));
+  document.getElementById("btnNaoRespondeu")?.addEventListener("click", e => {
+    activeFilter="pendente";
+    document.querySelectorAll(".stat-card").forEach(c=>c.classList.toggle("active",c.dataset.filter==="pendente"));
+    e.currentTarget.classList.add("active");
+    renderTable();
   });
-
-  document.getElementById("btnNaoRespondeu").addEventListener("click", () => setStatusFilter("pendente"));
-
-  document.getElementById("btnLimpar").addEventListener("click", () => {
-    document.getElementById("searchInput").value = "";
-    document.getElementById("groupFilter").value = "todos";
-    setStatusFilter("todos");
+  document.getElementById("btnLimpar")?.addEventListener("click", () => {
+    activeFilter="todos";
+    const s=document.getElementById("searchInput"); if(s) s.value="";
+    if(group) group.value="todos";
+    document.getElementById("btnNaoRespondeu")?.classList.remove("active");
+    document.querySelectorAll(".stat-card").forEach(c=>c.classList.remove("active"));
+    renderTable();
   });
-
-  // fecha o modal de convite clicando fora do cartão
-  document.getElementById("inviteModal").addEventListener("click", (e) => {
-    if (e.target.id === "inviteModal") closeInviteModal();
-  });
+  const modal=document.getElementById("inviteModal");
+  if(modal){ modal.style.display="none"; modal.addEventListener("click",e=>{if(e.target===modal) closeInviteModal();}); }
+  renderTable();
 });
