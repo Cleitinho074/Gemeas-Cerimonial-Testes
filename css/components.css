@@ -40,14 +40,15 @@
   justify-content: center;
   text-align: center;
   padding: 18px;
-  transition: transform 0.7s cubic-bezier(0.2, 0.9, 0.25, 1);
-  transform: translateY(28%);
+  transition: transform 0.7s cubic-bezier(0.2, 0.9, 0.25, 1), opacity 0.4s ease;
+  transform: translateY(18%);
+  opacity: 0; /* escondido enquanto o convite está fechado, evita cortar texto atrás do selo */
 }
 
-.envelope.open .env-back .card { transform: translateY(0); }
+.envelope.open .env-back .card { transform: translateY(0); opacity: 1; }
 
 .env-back .card .k1 { font-family: var(--font-display); font-style: italic; font-size: 15px; color: var(--rose); margin-bottom: 6px; }
-.env-back .card .k2 { font-family: var(--font-display); font-size: 26px; color: var(--green-deep); margin-bottom: 10px; }
+.env-back .card .k2 { font-family: var(--font-display); font-size: clamp(20px, 6vw, 26px); color: var(--green-deep); margin-bottom: 10px; overflow-wrap: break-word; line-height: 1.15; }
 .env-back .card .k3 { font-size: 11px; color: var(--ink-soft); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
 .env-back .card .rsvp-mini { display: flex; gap: 8px; font-size: 12px; font-weight: 700; }
 .env-back .card .rsvp-mini span { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--line); }
