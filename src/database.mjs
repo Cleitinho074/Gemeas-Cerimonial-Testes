@@ -29,7 +29,7 @@ if (process.env.NODE_ENV === "test" && process.env.TEST_DATABASE === "pglite") {
     connectionTimeoutMillis: 10000,
     idleTimeoutMillis: 30000,
     ssl: {
-      rejectUnauthorized: true,
+      rejectUnauthorized: false,
       ...(process.env.DATABASE_CA_CERT
         ? { ca: process.env.DATABASE_CA_CERT.replace(/\\n/g, "\n") }
         : {}),
