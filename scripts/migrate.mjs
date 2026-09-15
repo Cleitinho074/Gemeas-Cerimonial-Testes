@@ -8,6 +8,13 @@ try {
     ),
   );
   console.log("Estrutura do banco criada/verificada.");
+  await executeMigration(
+    readFileSync(
+      new URL("../supabase/migrations/002_password_reset.sql", import.meta.url),
+      "utf8",
+    ),
+  );
+  console.log("Recuperação de senha configurada.");
 } finally {
   await close();
 }
