@@ -128,3 +128,67 @@ Abra `http://localhost:4173`. Não abra o HTML diretamente. O comando de migraç
 ## Limites atuais
 
 Não inclui recuperação de senha, verificação de e-mail, pagamento ou envio automático de WhatsApp. O WhatsApp abre uma mensagem para envio manual. O limitador de tentativas é em memória e usa o endereço do par da conexão; atrás do proxy do Render, vários usuários podem compartilhar o mesmo limite. Escala com múltiplas instâncias e limitação distribuída precisam de configuração adicional. Os testes locais não validam suas credenciais, certificados, plano ou deploy real; a checagem `/health` e o fluxo após publicar completam essa validação.
+
+# Recuperação de senha por e-mail
+
+## 1. Preparar o banco
+
+No Supabase, abra SQL Editor, crie uma consulta, copie todo o conteúdo de
+`supabase/migrations/002_password_reset.sql` e clique em Run.
+O SQL cria a tabela de recuperação sem apagar os cadastros existentes e pode
+ser executado novamente. Faça isso antes de publicar os arquivos.
+
+Alternativa pelo terminal do projeto, com DATABASE_URL configurada: `npm run db:migrate`.
+
+## 2. Configurar o Render
+
+Em Environment, mantenha RESEND_API_KEY com a chave que você já cadastrou e
+adicione EMAIL_FROM. Para testar com o e-mail da sua própria conta Resend:
+
+    EMAIL_FROM=Tá Marcado <onboarding@resend.dev>
+
+Para enviar aos demais usuários, verifique um domínio seu em Resend > Domains
+e use um remetente desse domínio, por exemplo:
+
+    EMAIL_FROM=Tá Marcado <contato@seudominio.com>
+
+Mantenha APP_ORIGIN com o endereço real do site, sem barra final:
+
+    APP_ORIGIN=https://gemeas-cerimonial-testes.onrender.com
+
+Esta integração usa APP_ORIGIN, já existente no projeto. Não precisa de APP_URL.
+Não coloque a chave no código ou no GitHub.
+
+## 3. Publicar os arquivos
+
+O ZIP contém somente os arquivos novos ou alterados. Extraia e copie para a
+pasta do seu projeto preservando as pastas src, public, scripts, tests e supabase.
+Substitua os arquivos correspondentes. Envie as alterações à branch main no
+GitHub. Não envie o ZIP como um arquivo único e não apague os outros arquivos.
+O Render publicará a alteração; se necessário, use Manual Deploy > Deploy latest commit.
+Não é necessário instalar novas dependências.
+
+## 4. Testar no site
+
+Abra a tela de login, clique em Esqueci minha senha e informe o e-mail de uma
+conta já cadastrada no seu site. No modo de teste do Resend, esse e-mail também
+precisa ser o da sua conta Resend.
+Abra o link recebido, defina uma senha nova e entre novamente escolhendo o
+perfil correto. Confira também a pasta de spam.
+
+O link vale por 30 minutos, funciona uma única vez e um novo pedido aceito
+invalida o anterior. Pedidos para a mesma conta são espaçados por um minuto.
+Todas as sessões anteriores são encerradas após a troca. O usuário recebe
+também um aviso da alteração, sem a senha no e-mail.
+
+## Verificação feita
+
+Os 12 testes de integração passaram com PostgreSQL embutido e envio simulado.
+Incluem login com senha nova, rejeição da antiga, tokens expirados ou usados,
+revogação das sessões, erro do provedor, limite de pedidos e resposta genérica
+para e-mail inexistente. Nenhum e-mail real foi enviado durante os testes.
+
+Se o e-mail não chegar, confira Resend > Emails/Logs e os logs do Render.
+O envio ocorre em segundo plano: um reinício do servidor durante a entrega
+pode exigir solicitar outro link após um minuto.
+
