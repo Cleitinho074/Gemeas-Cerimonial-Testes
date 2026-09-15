@@ -3,6 +3,7 @@ import { appOrigin, secureCookie } from "./config.mjs";
 import { id, verify } from "./passwords.mjs";
 import { user, event, guest } from "./repository.mjs";
 import { auth, allowed, guestAuth, loginCookie } from "./auth.mjs";
+import { requestReset, resetPassword } from "./password-reset.mjs";
 import {
   fail,
   txt,
@@ -58,6 +59,14 @@ export async function api(req, res, url) {
 async function route(req, res, url, b) {
   const p = url.pathname,
     m = req.method;
+  if (p === "/api/forgot-password" && m === "POST") {
+    limit(req, "forgot-password", 10);
+    return requestReset(b.email);
+  }
+  if (p === "/api/reset-password" && m === "POST") {
+    limit(req, "reset-password", 10);
+    return resetPassword(b.token, b.password);
+  }
   if (p === "/api/login" && m === "POST") {
     limit(req, "login", 12);
     const u = await get(
