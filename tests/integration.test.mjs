@@ -434,6 +434,169 @@ test("Fluxos da API com PostgreSQL embutido", async (t) => {
     );
   });
   await t.test(
+    "recuperação de senha, entrega, expiração e sessões",
+    async () => {
+      await db.executeMigration(
+        readFileSync(
+          new URL(
+            "../supabase/migrations/002_password_reset.sql",
+            import.meta.url,
+          ),
+          "utf8",
+        ),
+      );
+      await db.executeMigration(
+        readFileSync(
+          new URL(
+            "../supabase/migrations/002_password_reset.sql",
+            import.meta.url,
+          ),
+          "utf8",
+        ),
+      );
+      const sent = [];
+      const originalFetch = globalThis.fetch;
+      process.env.RESEND_API_KEY = "test-only";
+      process.env.EMAIL_FROM = "Teste <teste@example.com>";
+      globalThis.fetch = async (url, options) => {
+        assert.equal(url, "https://api.resend.com/emails");
+        sent.push(JSON.parse(options.body));
+        return { ok: true };
+      };
+      const waitForMail = async (count) => {
+        for (let i = 0; i < 200 && sent.length < count; i++)
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        assert.equal(sent.length, count);
+      };
+      try {
+        const known = await request("/api/forgot-password", "POST", {
+          email: "owner@test.com",
+        });
+        await waitForMail(1);
+        const unknown = await request("/api/forgot-password", "POST", {
+          email: "missing@test.com",
+        });
+        assert.deepEqual(known.data, unknown.data);
+        assert.equal(known.status, 200);
+        const token = sent[0].text.match(/#token=([a-f0-9]{64})/)[1];
+        assert.ok(
+          sent[0].text.includes(origin + "/redefinir-senha.html#token="),
+        );
+        assert.equal(sent[0].to[0], "owner@test.com");
+        const stored = await db.get(
+          "SELECT * FROM password_resets WHERE user_id=(SELECT id FROM users WHERE email=?)",
+          "owner@test.com",
+        );
+        assert.notEqual(stored.token_hash, token);
+        await request("/api/forgot-password", "POST", {
+          email: "owner@test.com",
+        });
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        assert.equal(sent.length, 1);
+        assert.equal(
+          (
+            await request("/api/reset-password", "POST", {
+              token,
+              password: "curta",
+            })
+          ).status,
+          400,
+        );
+        await db.run(
+          "UPDATE password_resets SET expires=0 WHERE token_hash=?",
+          stored.token_hash,
+        );
+        assert.equal(
+          (
+            await request("/api/reset-password", "POST", {
+              token,
+              password: "NovaSenha123!",
+            })
+          ).status,
+          400,
+        );
+        await db.run(
+          "UPDATE password_resets SET expires=? WHERE token_hash=?",
+          Date.now() + 60000,
+          stored.token_hash,
+        );
+        const sessionBefore = (
+          await request("/api/login", "POST", {
+            email: "owner@test.com",
+            password: "SenhaTeste123!",
+            role: "noiva",
+          })
+        ).cookie;
+        assert.equal(
+          (
+            await request("/api/reset-password", "POST", {
+              token,
+              password: "NovaSenha123!",
+            })
+          ).status,
+          200,
+        );
+        await waitForMail(2);
+        assert.equal(
+          (await request("/api/me", "GET", undefined, sessionBefore)).status,
+          401,
+        );
+        assert.equal(
+          (
+            await request("/api/reset-password", "POST", {
+              token,
+              password: "OutraSenha123!",
+            })
+          ).status,
+          400,
+        );
+        assert.equal(
+          (
+            await request("/api/login", "POST", {
+              email: "owner@test.com",
+              password: "SenhaTeste123!",
+              role: "noiva",
+            })
+          ).status,
+          401,
+        );
+        assert.equal(
+          (
+            await request("/api/login", "POST", {
+              email: "owner@test.com",
+              password: "NovaSenha123!",
+              role: "noiva",
+            })
+          ).status,
+          200,
+        );
+        assert.equal((await db.all("SELECT * FROM password_resets")).length, 0);
+        globalThis.fetch = async () => ({ ok: false, status: 403 });
+        await request("/api/forgot-password", "POST", {
+          email: "owner@test.com",
+        });
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        assert.equal((await db.all("SELECT * FROM password_resets")).length, 0);
+        for (let i = 0; i < 11; i++)
+          await request("/api/forgot-password", "POST", {
+            email: "missing@test.com",
+          });
+        assert.equal(
+          (
+            await request("/api/forgot-password", "POST", {
+              email: "missing@test.com",
+            })
+          ).status,
+          429,
+        );
+      } finally {
+        globalThis.fetch = originalFetch;
+        delete process.env.RESEND_API_KEY;
+        delete process.env.EMAIL_FROM;
+      }
+    },
+  );
+  await t.test(
     "RLS habilitada e restrição de integridade no PostgreSQL",
     async () => {
       await db.executeMigration("CREATE ROLE anon; CREATE ROLE authenticated;");
