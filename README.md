@@ -1,3 +1,7 @@
+# Atualização de segurança
+
+Antes de publicar esta versão, siga [ATIVAR-SEGURANCA.md](docs/ATIVAR-SEGURANCA.md): migrações 004 e 005, role restrita, CA e envio de e-mail. Contas existentes precisarão confirmar o endereço.
+
 > Configuração guiada de e-mail: [docs/CONFIGURAR-RESEND.md](docs/CONFIGURAR-RESEND.md). Veja também [docs/REVISAO.md](docs/REVISAO.md).
 
 # Gêmeas Cerimonial — Supabase e Render
