@@ -9,6 +9,13 @@ process.env.NODE_ENV = "test";
 process.env.TEST_DATABASE = "pglite";
 process.env.PORT = "0";
 process.env.APP_ORIGIN = "https://gemeas-cerimonial-dgbq.onrender.com";
+process.env.RESEND_API_KEY = "test-only";
+process.env.EMAIL_FROM = "test@example.com";
+const sent = [];
+globalThis.fetch = async (_url, options) => {
+  sent.push(JSON.parse(options.body));
+  return { ok: true };
+};
 const { server } = await import("../server.mjs");
 const db = await import("../src/database.mjs");
 if (!server.listening) await once(server, "listening");
@@ -67,10 +74,49 @@ const registration = (email) => ({
   local: "Salão",
 });
 
+async function activation(email) {
+  let mail;
+  for (let i = 0; i < 100; i++) {
+    mail = sent.findLast(
+      (m) => m.to[0] === email && m.subject.includes("Confirme"),
+    );
+    if (mail) break;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  assert.ok(mail, "E-mail de confirmação enviado");
+  const token = mail.text.match(/token=([a-f0-9]{64})/)[1];
+  const result = await request("/api/confirm-email", "POST", {
+    token,
+    password: "SenhaTeste123!",
+    passwordConfirm: "SenhaTeste123!",
+  });
+  assert.equal(result.status, 200, JSON.stringify(result.data));
+  assert.equal(
+    (
+      await request("/api/confirm-email", "POST", {
+        token,
+        password: "SenhaTeste123!",
+        passwordConfirm: "SenhaTeste123!",
+      })
+    ).status,
+    400,
+  );
+  return token;
+}
+async function signIn(email, role = "noiva") {
+  return request("/api/login", "POST", {
+    email,
+    password: "SenhaTeste123!",
+    role,
+  });
+}
 test("Fluxos da API com PostgreSQL embutido", async (t) => {
   t.after(async () => {
     await new Promise((resolve) => server.close(resolve));
     await db.close();
+  });
+  t.beforeEach(async () => {
+    await db.run("DELETE FROM rate_limits");
   });
   let owner, other, eid, g1, g2, fid, planner;
   await t.test("páginas e arquivos privados", async () => {
@@ -96,6 +142,34 @@ test("Fluxos da API com PostgreSQL embutido", async (t) => {
       }
     }
   });
+  await t.test(
+    "CSP sem scripts inline e limite de corpo em bytes UTF-8",
+    async () => {
+      const page = await request("/");
+      const csp = page.headers.get("content-security-policy");
+      assert.match(csp, /script-src 'self';/);
+      assert.match(csp, /object-src 'none'/);
+      assert.equal(page.headers.get("x-frame-options"), "DENY");
+      for (const name of readdirSync(
+        new URL("../public/", import.meta.url),
+      ).filter((n) => n.endsWith(".html"))) {
+        const html = readFileSync(
+          new URL("../public/" + name, import.meta.url),
+          "utf8",
+        );
+        assert.doesNotMatch(html, /\son[a-z]+\s*=/i);
+      }
+      assert.equal(
+        (
+          await request("/api/login", "POST", {
+            email: "a@test.com",
+            password: "😀".repeat(26000),
+          })
+        ).status,
+        413,
+      );
+    },
+  );
   await t.test("validação, cadastro e cookie HTTPS", async () => {
     assert.equal((await request("/api/me")).status, 401);
     assert.equal((await request("/api/register", "POST", null)).status, 400);
@@ -109,7 +183,12 @@ test("Fluxos da API com PostgreSQL embutido", async (t) => {
       400,
     );
     assert.equal(
-      (await request("/api/register", "POST", { ...registration("semconfirmacao@test.com"), passwordConfirm: undefined })).status,
+      (
+        await request("/api/register", "POST", {
+          ...registration("semconfirmacao@test.com"),
+          passwordConfirm: undefined,
+        })
+      ).status,
       400,
     );
     assert.equal(
@@ -139,17 +218,25 @@ test("Fluxos da API com PostgreSQL embutido", async (t) => {
       registration("owner@test.com"),
     );
     assert.equal(result.status, 200, JSON.stringify(result.data));
-    owner = result.cookie;
-    assert.match(result.headers.get("set-cookie"), /HttpOnly/);
-    assert.match(result.headers.get("set-cookie"), /Secure/);
+    assert.equal(result.cookie, undefined);
+    assert.equal((await signIn("owner@test.com")).status, 403);
+    await activation("owner@test.com");
+    const login = await signIn("owner@test.com");
+    owner = login.cookie;
+    assert.match(login.headers.get("set-cookie"), /HttpOnly/);
+    assert.match(login.headers.get("set-cookie"), /Secure/);
     assert.equal(
       (await request("/api/register", "POST", registration("owner@test.com")))
         .status,
-      409,
+      200,
     );
-    other = (
-      await request("/api/register", "POST", registration("other@test.com"))
-    ).cookie;
+    await await request(
+      "/api/register",
+      "POST",
+      registration("other@test.com"),
+    );
+    await activation("other@test.com");
+    other = (await signIn("other@test.com")).cookie;
     eid = (await request("/api/events", "GET", undefined, owner)).data[0].id;
     assert.notEqual(
       (
@@ -391,6 +478,8 @@ test("Fluxos da API com PostgreSQL embutido", async (t) => {
           .status,
         200,
       );
+    assert.equal((await signIn(access.email, "cerimonialista")).status, 401);
+    await activation(access.email);
     planner = (
       await request("/api/login", "POST", {
         email: access.email,
@@ -612,6 +701,12 @@ test("Fluxos da API com PostgreSQL embutido", async (t) => {
         assert.ok(
           sent[0].text.includes(origin + "/redefinir-senha.html#token="),
         );
+        assert.ok(
+          sent[0].html.includes(
+            `href="${origin}/redefinir-senha.html#token=${token}"`,
+          ),
+        );
+        assert.match(sent[0].html, /Criar nova senha/);
         assert.equal(sent[0].to[0], "owner@test.com");
         const stored = await db.get(
           "SELECT * FROM password_resets WHERE user_id=(SELECT id FROM users WHERE email=?)",
@@ -667,6 +762,7 @@ test("Fluxos da API com PostgreSQL embutido", async (t) => {
           200,
         );
         await waitForMail(2);
+        assert.match(sent[1].html, /Senha alterada/);
         assert.equal(
           (await request("/api/me", "GET", undefined, sessionBefore)).status,
           401,
@@ -723,6 +819,148 @@ test("Fluxos da API com PostgreSQL embutido", async (t) => {
         globalThis.fetch = originalFetch;
         delete process.env.RESEND_API_KEY;
         delete process.env.EMAIL_FROM;
+      }
+    },
+  );
+  await t.test(
+    "expiração, reenvio e falha de entrega da confirmação",
+    async () => {
+      const { user } = await import("../src/repository.mjs");
+      const { sendVerification, confirmEmail } =
+        await import("../src/email-verification.mjs");
+      process.env.RESEND_API_KEY = "test-only";
+      process.env.EMAIL_FROM = "test@example.com";
+      const uid = await user(
+        "Teste",
+        "expire@test.com",
+        "SenhaInicial123!",
+        "noiva",
+      );
+      await sendVerification("expire@test.com");
+      const token1 = sent.at(-1).text.match(/token=([a-f0-9]{64})/)[1];
+      const stored = await db.get(
+        "SELECT * FROM email_verifications WHERE user_id=?",
+        uid,
+      );
+      assert.notEqual(stored.token_hash, token1);
+      await db.run(
+        "UPDATE email_verifications SET expires=0,requested_at=0 WHERE user_id=?",
+        uid,
+      );
+      await assert.rejects(
+        confirmEmail(token1, "NovaSenha123!", "NovaSenha123!"),
+        { status: 400 },
+      );
+      await sendVerification("expire@test.com");
+      const token2 = sent.at(-1).text.match(/token=([a-f0-9]{64})/)[1];
+      await assert.rejects(
+        confirmEmail(token1, "NovaSenha123!", "NovaSenha123!"),
+        { status: 400 },
+      );
+      const results = await Promise.allSettled([
+        confirmEmail(token2, "NovaSenha123!", "NovaSenha123!"),
+        confirmEmail(token2, "NovaSenha123!", "NovaSenha123!"),
+      ]);
+      assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
+      assert.equal(
+        (await db.get("SELECT email_verified FROM users WHERE id=?", uid))
+          .email_verified,
+        true,
+      );
+      const { verify } = await import("../src/passwords.mjs");
+      assert.equal(
+        await verify(
+          "SenhaInicial123!",
+          (await db.get("SELECT password FROM users WHERE id=?", uid)).password,
+        ),
+        false,
+      );
+      const failUid = await user(
+        "Fail",
+        "fail@test.com",
+        "SenhaInicial123!",
+        "noiva",
+      );
+      const previous = globalThis.fetch;
+      globalThis.fetch = async () => ({ ok: false, status: 403 });
+      try {
+        await sendVerification("fail@test.com");
+      } finally {
+        globalThis.fetch = previous;
+      }
+      assert.equal(
+        await db.get(
+          "SELECT * FROM email_verifications WHERE user_id=?",
+          failUid,
+        ),
+        undefined,
+      );
+    },
+  );
+  await t.test(
+    "limite compartilhado atômico e persistente entre módulos",
+    async () => {
+      const { consume } = await import("../src/rate-limit.mjs");
+      const { consume: second } =
+        await import("../src/rate-limit.mjs?second-instance");
+      const outcomes = await Promise.allSettled(
+        Array.from({ length: 20 }, (_, i) =>
+          (i % 2 ? consume : second)("shared-test", 5),
+        ),
+      );
+      assert.equal(outcomes.filter((r) => r.status === "fulfilled").length, 5);
+      assert.ok(
+        outcomes
+          .filter((r) => r.status === "rejected")
+          .every((r) => r.reason.status === 429),
+      );
+      await db.run("UPDATE rate_limits SET expires=0");
+      await second("shared-test", 5);
+    },
+  );
+  await t.test(
+    "role restrita executa aplicação mas não DDL nem acesso anônimo",
+    async () => {
+      await db.executeMigration(
+        readFileSync(
+          new URL(
+            "../supabase/migrations/005_runtime_role.sql",
+            import.meta.url,
+          ),
+          "utf8",
+        ),
+      );
+      await db.transaction(async () => {
+        await db.run("SET LOCAL ROLE tamarcado_app");
+        assert.ok((await db.all("SELECT id FROM users")).length > 0);
+        await db.run(
+          "INSERT INTO rate_limits(key,hits,expires) VALUES('role-test',1,1)",
+        );
+        await db.run("UPDATE rate_limits SET hits=2 WHERE key='role-test'");
+        await db.run("DELETE FROM rate_limits WHERE key='role-test'");
+        const { user } = await import("../src/repository.mjs");
+        const uid = await user(
+          "Role",
+          "role@test.com",
+          "SenhaTeste123!",
+          "noiva",
+        );
+        await db.run("DELETE FROM users WHERE id=?", uid);
+      });
+      for (const sql of [
+        "DROP TABLE users CASCADE",
+        "ALTER TABLE users ADD COLUMN malicious text",
+        "CREATE TABLE public.malicious(id int)",
+        "CREATE ROLE malicious",
+        "TRUNCATE rate_limits",
+      ]) {
+        await assert.rejects(
+          db.transaction(async () => {
+            await db.run("SET LOCAL ROLE tamarcado_app");
+            await db.run(sql);
+          }),
+          { code: "42501" },
+        );
       }
     },
   );
